@@ -16,33 +16,71 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # install system dependencies
+      # install system dependencies - Linux
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-dev libflac-dev libflac++-dev
+          # Verify installations
+          ls -la /usr/include/FLAC*
+          ls -la /usr/lib/*flac*
       
+      # install system dependencies - macOS
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install gcc flac
+          # Verify installations
+          ls -la /usr/local/include/FLAC*
+          ls -la /usr/local/lib/*flac*
       
+      # install system dependencies - Windows
       - name: Install system dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
-          # This would need to be customized based on your Windows build strategy
-          choco install mingw flac
-          # Or use vcpkg
+          # More detailed Windows setup
+          choco install -y mingw
+          
+          # Use vcpkg for FLAC libraries on Windows
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          ./bootstrap-vcpkg.bat
+          ./vcpkg install flac:x64-windows
+          ./vcpkg integrate install
+          
+          # Set environment variables for the build
+          echo "INCLUDE=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
+          echo "LIB=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
       
+      # debug info
+      - name: Debug Information
+        run: |
+          python --version
+          pip --version
+          pip list
+          
+          # Print current directory structure
+          ls -la
+          
+      # build wheels with verbose output
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.0
         env:
-          CIBW_BEFORE_BUILD: "pip install numpy"
-          # tbd: add any other build configurations
+          CIBW_BEFORE_BUILD: "pip install numpy -v"
+          CIBW_BUILD_VERBOSITY: 3
+          # skip PyPy builds since we're using C extensions
+          CIBW_SKIP: "pp* *-musllinux_*"
+          # add platform-specific configurations
+          CIBW_ENVIRONMENT_LINUX: "CFLAGS='-I/usr/include' LDFLAGS='-L/usr/lib'"
+          CIBW_ENVIRONMENT_MACOS: "CFLAGS='-I/usr/local/include' LDFLAGS='-L/usr/local/lib'"
+          CIBW_ENVIRONMENT_WINDOWS: "INCLUDE='${{ env.INCLUDE }}' LIB='${{ env.LIB }}'"
+          # test importing the module works
+          CIBW_TEST_REQUIRES: "numpy"
+          CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
