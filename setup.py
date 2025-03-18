@@ -12,11 +12,11 @@ flac_lib_dir = os.environ.get('FLAC_LIB_DIR', '/usr/lib/x86_64-linux-gnu')
 
 # Platform-specific optimizations
 if platform.system() == "Linux":
-    extra_compile_args.extend(["-O3", "-march=native", "-ftree-vectorize"])
+    extra_compile_args.extend(["-O3", "-march=native"])
 elif platform.system() == "Darwin":
     extra_compile_args.extend(["-O3", "-march=native"])
 elif platform.system() == "Windows":
-    extra_compile_args.extend(["/O2", "/arch:AVX2"])
+    extra_compile_args.extend(["/O2", "/GL", "/LTCG", "/arch:AVX2"])
 
 # Print debug info for paths
 print(f"Using FLAC_INCLUDE_DIR: {flac_include_dir}")
@@ -48,7 +48,7 @@ setup(
         'flacpy': ['py.typed', '*.pyi'],
     },
     include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.10',
     install_requires=['numpy'],  # Add NumPy as a dependency
     zip_safe=False,  # This is important for proper type detection
 )

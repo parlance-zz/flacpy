@@ -15,119 +15,77 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      
-      # Install system dependencies - Linux
-      - name: Install system dependencies (Linux)
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Install build dependencies
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build wheel setuptools numpy
+
+      # ===== LINUX SETUP =====
+      - name: Install FLAC (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential python3-dev libflac-dev libflac++-dev
-
-          # Find FLAC headers and libraries exhaustively
-          echo "Checking for FLAC headers:"
-          find /usr -name "*FLAC*.h" | grep -v "obj"
+          sudo apt-get install -y libflac-dev libflac++-dev
+          echo "CIBW_ENVIRONMENT=FLAC_INCLUDE_DIR=/usr/include FLAC_LIB_DIR=/usr/lib/x86_64-linux-gnu CFLAGS=-I/usr/include LDFLAGS=-L/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
           
-          # Create a wrapper script to help debugging
-          echo '#!/bin/bash
-          echo "== Build environment =="
-          env | grep FLAC
-          echo "== Include directories =="
-          find /usr -name "FLAC" -type d
-          ls -la $FLAC_INCLUDE_DIR/FLAC || echo "FLAC dir not found at $FLAC_INCLUDE_DIR/FLAC"
-          echo "== Compiler commands =="
-          "$@"' > build_wrapper.sh
-          chmod +x build_wrapper.sh
-          
-          # Set include dir to actual directory containing FLAC directory
-          FLAC_INCLUDE_DIR=/usr/include
-          echo "FLAC_INCLUDE_DIR=$FLAC_INCLUDE_DIR" >> $GITHUB_ENV
-          
-          # Set library dir
-          FLAC_LIB_DIR=/usr/lib/x86_64-linux-gnu
-          echo "FLAC_LIB_DIR=$FLAC_LIB_DIR" >> $GITHUB_ENV
-      
-      # Install system dependencies - macOS
-      - name: Install system dependencies (macOS)
+      # ===== MACOS SETUP =====
+      - name: Install FLAC (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install gcc flac
-          echo "FLAC_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
-          echo "FLAC_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
-          
-      # Install system dependencies - Windows
-      - name: Install system dependencies (Windows)
+          brew install flac
+          echo "CIBW_ENVIRONMENT=FLAC_INCLUDE_DIR=/usr/local/include FLAC_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
+
+      # ===== WINDOWS SETUP =====
+      - name: Install FLAC (Windows)
         if: runner.os == 'Windows'
         run: |
-          # More detailed Windows setup
           choco install -y mingw
-          
-          # Use vcpkg for FLAC libraries on Windows
-          git clone https://github.com/Microsoft/vcpkg.git
+          # Use a simple vcpkg setup for Windows
+          git clone --depth=1 https://github.com/Microsoft/vcpkg.git
           cd vcpkg
-          ./bootstrap-vcpkg.bat
-          ./vcpkg install flac
-          ./vcpkg integrate install
-          
-          # Set environment variables for the build
-          echo "FLAC_INCLUDE_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
-          echo "FLAC_LIB_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
-      
-      # Create setup.cfg to explicitly include paths
-      - name: Create setup.cfg with include paths
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install flac:x64-windows
+          echo "CIBW_ENVIRONMENT=FLAC_INCLUDE_DIR=$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/include FLAC_LIB_DIR=$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # Install cibuildwheel
+      - name: Install cibuildwheel
         run: |
-          echo "[build_ext]" > setup.cfg
-          echo "include_dirs=${{ env.FLAC_INCLUDE_DIR }}" >> setup.cfg
-          echo "library_dirs=${{ env.FLAC_LIB_DIR }}" >> setup.cfg
-          cat setup.cfg
-      
-      # Debug info
-      - name: Debug Information (All)
+          python -m pip install cibuildwheel
+
+      # Build the wheels
+      - name: Build wheels
         run: |
-          python --version
-          pip --version
-          pip list
-          echo "FLAC_INCLUDE_DIR=${{ env.FLAC_INCLUDE_DIR }}"
-          echo "FLAC_LIB_DIR=${{ env.FLAC_LIB_DIR }}"
-      
-      # Build wheels directly for Windows
-      - name: Build wheels (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          pip install cibuildwheel
           python -m cibuildwheel --output-dir wheelhouse
         env:
+          # Build only for Python 3.10+
           CIBW_BUILD: "cp310-* cp311-* cp312-*"
-          CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-* cp39-*"
+          CIBW_SKIP: "pp* *-musllinux_*"
+          
+          # Install numpy before building
           CIBW_BEFORE_BUILD: "pip install numpy"
+          
+          # Building verbosity
           CIBW_BUILD_VERBOSITY: 3
-          FLAC_INCLUDE_DIR: ${{ env.FLAC_INCLUDE_DIR }}
-          FLAC_LIB_DIR: ${{ env.FLAC_LIB_DIR }}
+          
+          # Manylinux specific settings
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          
+          # Repair wheels to include shared libraries
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair -w {dest_dir} {wheel}"
+          
+          # Test the built wheel
           CIBW_TEST_REQUIRES: "numpy"
-          CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
+          CIBW_TEST_COMMAND: "python -c \"import flacpy; print('Import successful')\""
 
-      # Use the action for Linux/macOS
-      - name: Build wheels (Unix/macOS)
-        if: runner.os != 'Windows'
-        uses: pypa/cibuildwheel@v2.12.0
-        env:
-          CIBW_BEFORE_BUILD: |
-            pip install numpy -v
-            apt-get update || true
-            apt-get install -y libflac-dev libflac++-dev || brew install flac || true
-            find /usr -name "stream_decoder.h" -path "*/FLAC/*" || true
-          CIBW_BUILD_VERBOSITY: 3
-          CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-* cp39-*"
-          CIBW_BUILD: "cp310-* cp311-* cp312-*"
-          CIBW_ENVIRONMENT: >
-            FLAC_INCLUDE_DIR="/usr/include"
-            FLAC_LIB_DIR="/usr/lib/x86_64-linux-gnu"
-            CFLAGS="-I/usr/include"
-            LDFLAGS="-L/usr/lib/x86_64-linux-gnu"
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: 'LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH auditwheel repair -w {dest_dir} {wheel}'
-          CIBW_TEST_REQUIRES: "numpy"
-          CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
-      
+      # Upload the wheels
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
