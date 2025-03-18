@@ -6,7 +6,8 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Build Extension",
-                "Install Editable"
+                "Build Wheel",
+                "Install Package"
             ],
             "group": {
                 "kind": "build",
@@ -22,10 +23,17 @@
             "problemMatcher": []
         },
         {
-            "label": "Install Editable",
+            "label": "Build Wheel",
+            "type": "shell",
+            "command": "python",
+            "args": ["setup.py", "bdist_wheel"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Package",
             "type": "shell",
             "command": "pip",
-            "args": ["install", "-e", "."],
+            "args": ["install", "."],
             "problemMatcher": []
         }
     ]

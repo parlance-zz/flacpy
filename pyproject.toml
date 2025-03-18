@@ -1,7 +1,18 @@
 [project]
 name = "flacpy"
-readme = "README.md"
-dynamic = ["version", "description", "authors", "requires-python", "dependencies"]
+license = {"file" = "LICENSE"}
+dynamic = [
+    "readme",
+    "version",
+    "description",
+    "authors",
+    "requires-python",
+    "dependencies"
+]
+keywords = ["flac", "python"]
+
+[project.urls]
+Homepage = "https://github.com/parlance-zz/flacpy"
 
 [build-system]
 requires = [
@@ -18,7 +29,7 @@ packages = ["flacpy"]
 flacpy = ["py.typed", "*.pyi"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
