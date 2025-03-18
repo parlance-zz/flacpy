@@ -63,7 +63,7 @@ jobs:
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.bat
-          ./vcpkg install flac:x64-windows
+          ./vcpkg install flac
           ./vcpkg integrate install
           
           # Set environment variables for the build
@@ -87,31 +87,37 @@ jobs:
           echo "FLAC_INCLUDE_DIR=${{ env.FLAC_INCLUDE_DIR }}"
           echo "FLAC_LIB_DIR=${{ env.FLAC_LIB_DIR }}"
       
-      # Build wheels with verbose output
-      - name: Build wheels
+      # Build wheels directly for Windows
+      - name: Build wheels (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          pip install cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: "cp310-* cp311-* cp312-*"
+          CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-* cp39-*"
+          CIBW_BEFORE_BUILD: "pip install numpy"
+          CIBW_BUILD_VERBOSITY: 3
+          FLAC_INCLUDE_DIR: ${{ env.FLAC_INCLUDE_DIR }}
+          FLAC_LIB_DIR: ${{ env.FLAC_LIB_DIR }}
+          CIBW_TEST_REQUIRES: "numpy"
+          CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
+
+      # Use the action for Linux/macOS
+      - name: Build wheels (Unix/macOS)
+        if: runner.os != 'Windows'
         uses: pypa/cibuildwheel@v2.12.0
         env:
           CIBW_BEFORE_BUILD: "pip install numpy -v"
           CIBW_BUILD_VERBOSITY: 3
-          # Skip PyPy and older Python versions that aren't compatible
           CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-* cp39-*"
-          # Only build for Python 3.10+ which has better compatibility
           CIBW_BUILD: "cp310-* cp311-* cp312-*"
-          # Pass environment variables to the build - use different syntax for Windows
-          CIBW_ENVIRONMENT_LINUX: >
+          CIBW_ENVIRONMENT: >
             FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
             FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
             CFLAGS="-I${{ env.FLAC_INCLUDE_DIR }}"
             LDFLAGS="-L${{ env.FLAC_LIB_DIR }}"
-          CIBW_ENVIRONMENT_MACOS: >
-            FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
-            FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
-            CFLAGS="-I${{ env.FLAC_INCLUDE_DIR }}"
-            LDFLAGS="-L${{ env.FLAC_LIB_DIR }}"
-          CIBW_ENVIRONMENT_WINDOWS: >
-            FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
-            FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
-          # Test importing the module works
           CIBW_TEST_REQUIRES: "numpy"
           CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
       
