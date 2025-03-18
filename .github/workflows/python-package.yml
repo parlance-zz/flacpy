@@ -16,26 +16,50 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # install system dependencies - Linux
+      # Install system dependencies - Linux
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-dev libflac-dev libflac++-dev
-          # Verify installations
-          ls -la /usr/include/FLAC*
-          ls -la /usr/lib/*flac*
+          
+          # Find where FLAC is actually installed
+          echo "Checking include files:"
+          find /usr -name "FLAC*" | grep include
+          echo "Checking library files:"
+          find /usr/lib* -name "*flac*" | grep -v "debug"
+          
+          # Explicitly check architecture-specific paths
+          echo "Architecture-specific paths:"
+          ls -la /usr/include/x86_64-linux-gnu/FLAC* || echo "No arch-specific FLAC headers"
+          ls -la /usr/lib/x86_64-linux-gnu/libFLAC* || echo "No arch-specific FLAC libs"
+          
+          # First check for architecture-specific paths, then fall back to standard paths
+          if [ -d "/usr/include/x86_64-linux-gnu/FLAC++" ]; then
+            echo "FLAC_INCLUDE_DIR=/usr/include/x86_64-linux-gnu" >> $GITHUB_ENV
+          else
+            echo "FLAC_INCLUDE_DIR=$(dirname $(find /usr -name "FLAC++/metadata.h" | head -1))" >> $GITHUB_ENV
+          fi
+          
+          if [ -f "/usr/lib/x86_64-linux-gnu/libFLAC++.so" ]; then
+            echo "FLAC_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          else
+            echo "FLAC_LIB_DIR=$(dirname $(find /usr/lib* -name "libFLAC++.so*" | head -1))" >> $GITHUB_ENV
+          fi
+          
+          # Print selected paths for verification
+          echo "Selected FLAC_INCLUDE_DIR: $FLAC_INCLUDE_DIR"
+          echo "Selected FLAC_LIB_DIR: $FLAC_LIB_DIR"
       
-      # install system dependencies - macOS
+      # Install system dependencies - macOS
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install gcc flac
-          # Verify installations
-          ls -la /usr/local/include/FLAC*
-          ls -la /usr/local/lib/*flac*
+          echo "FLAC_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
+          echo "FLAC_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
       
-      # install system dependencies - Windows
+      # Install system dependencies - Windows
       - name: Install system dependencies (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -50,8 +74,8 @@ jobs:
           ./vcpkg integrate install
           
           # Set environment variables for the build
-          echo "INCLUDE=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
-          echo "LIB=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
+          echo "FLAC_INCLUDE_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
+          echo "FLAC_LIB_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
       
       # debug info
       - name: Debug Information
@@ -63,19 +87,19 @@ jobs:
           # Print current directory structure
           ls -la
           
-      # build wheels with verbose output
+      # Build wheels with verbose output
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.0
         env:
           CIBW_BEFORE_BUILD: "pip install numpy -v"
           CIBW_BUILD_VERBOSITY: 3
-          # skip PyPy builds since we're using C extensions
+          # Skip PyPy builds
           CIBW_SKIP: "pp* *-musllinux_*"
-          # add platform-specific configurations
-          CIBW_ENVIRONMENT_LINUX: "CFLAGS='-I/usr/include' LDFLAGS='-L/usr/lib'"
-          CIBW_ENVIRONMENT_MACOS: "CFLAGS='-I/usr/local/include' LDFLAGS='-L/usr/local/lib'"
-          CIBW_ENVIRONMENT_WINDOWS: "INCLUDE='${{ env.INCLUDE }}' LIB='${{ env.LIB }}'"
-          # test importing the module works
+          # Pass environment variables to the build
+          CIBW_ENVIRONMENT: >
+            FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
+            FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
+          # Test importing the module works
           CIBW_TEST_REQUIRES: "numpy"
           CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
       

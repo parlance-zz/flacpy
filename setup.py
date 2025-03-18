@@ -6,6 +6,10 @@ import numpy as np  # Import NumPy to get include directory
 extra_compile_args = []
 extra_link_args = []
 
+# Get include and lib paths from environment variables or use defaults
+flac_include_dir = os.environ.get('FLAC_INCLUDE_DIR', '/usr/local/include')
+flac_lib_dir = os.environ.get('FLAC_LIB_DIR', '/usr/local/lib')
+
 # Platform-specific optimizations
 if platform.system() == "Linux":
     extra_compile_args.extend(["-O3", "-march=native", "-ftree-vectorize"])
@@ -18,10 +22,10 @@ flacpy_module = Extension(
     'flacpy._flacpy',  # Note the change here to make it a submodule
     sources=['src/flacpy.cpp'],
     include_dirs=[
-        '/usr/local/include',
+        flac_include_dir,
         np.get_include(),  # Add NumPy's include directory
     ],
-    library_dirs=['/usr/local/lib'],
+    library_dirs=[flac_lib_dir],
     libraries=['FLAC', 'FLAC++'],
     extra_compile_args=extra_compile_args,
     extra_link_args=extra_link_args,
