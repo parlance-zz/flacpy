@@ -6,9 +6,9 @@ import numpy as np  # Import NumPy to get include directory
 extra_compile_args = []
 extra_link_args = []
 
-# Get include and lib paths from environment variables or use defaults
-flac_include_dir = os.environ.get('FLAC_INCLUDE_DIR', '/usr/local/include')
-flac_lib_dir = os.environ.get('FLAC_LIB_DIR', '/usr/local/lib')
+# Use hardcoded paths based on standard locations for manylinux
+flac_include_dir = os.environ.get('FLAC_INCLUDE_DIR', '/usr/include')
+flac_lib_dir = os.environ.get('FLAC_LIB_DIR', '/usr/lib/x86_64-linux-gnu')
 
 # Platform-specific optimizations
 if platform.system() == "Linux":
@@ -17,6 +17,10 @@ elif platform.system() == "Darwin":
     extra_compile_args.extend(["-O3", "-march=native"])
 elif platform.system() == "Windows":
     extra_compile_args.extend(["/O2", "/arch:AVX2"])
+
+# Print debug info for paths
+print(f"Using FLAC_INCLUDE_DIR: {flac_include_dir}")
+print(f"Using FLAC_LIB_DIR: {flac_lib_dir}")
 
 flacpy_module = Extension(
     'flacpy._flacpy',  # Note the change here to make it a submodule

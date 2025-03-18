@@ -22,27 +22,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-dev libflac-dev libflac++-dev
+
+          # Find FLAC headers and libraries exhaustively
+          echo "Checking for FLAC headers:"
+          find /usr -name "*FLAC*.h" | grep -v "obj"
           
-          # Verify FLAC installation
-          dpkg -L libflac-dev
-          dpkg -L libflac++-dev
+          # Create a wrapper script to help debugging
+          echo '#!/bin/bash
+          echo "== Build environment =="
+          env | grep FLAC
+          echo "== Include directories =="
+          find /usr -name "FLAC" -type d
+          ls -la $FLAC_INCLUDE_DIR/FLAC || echo "FLAC dir not found at $FLAC_INCLUDE_DIR/FLAC"
+          echo "== Compiler commands =="
+          "$@"' > build_wrapper.sh
+          chmod +x build_wrapper.sh
           
-          # Check where FLAC headers actually are
-          find /usr -name "stream_decoder.h" -path "*/FLAC/*" 2>/dev/null
+          # Set include dir to actual directory containing FLAC directory
+          FLAC_INCLUDE_DIR=/usr/include
+          echo "FLAC_INCLUDE_DIR=$FLAC_INCLUDE_DIR" >> $GITHUB_ENV
           
-          # Set FLAC paths based on actual locations
-          FLAC_INCLUDE=$(dirname $(dirname $(find /usr -name "stream_decoder.h" -path "*/FLAC/*" 2>/dev/null | head -1)))
-          echo "FLAC_INCLUDE_DIR=$FLAC_INCLUDE" >> $GITHUB_ENV
-          
-          FLAC_LIB=$(dirname $(find /usr/lib* -name "libFLAC++.so*" 2>/dev/null | head -1))
-          echo "FLAC_LIB_DIR=$FLAC_LIB" >> $GITHUB_ENV
-          
-          echo "Selected FLAC_INCLUDE_DIR: $FLAC_INCLUDE"
-          echo "Selected FLAC_LIB_DIR: $FLAC_LIB"
-          
-          # Verify the files exist
-          ls -la $FLAC_INCLUDE/FLAC
-          ls -la $FLAC_LIB/libFLAC*.so*
+          # Set library dir
+          FLAC_LIB_DIR=/usr/lib/x86_64-linux-gnu
+          echo "FLAC_LIB_DIR=$FLAC_LIB_DIR" >> $GITHUB_ENV
       
       # Install system dependencies - macOS
       - name: Install system dependencies (macOS)
@@ -109,15 +111,20 @@ jobs:
         if: runner.os != 'Windows'
         uses: pypa/cibuildwheel@v2.12.0
         env:
-          CIBW_BEFORE_BUILD: "pip install numpy -v"
+          CIBW_BEFORE_BUILD: |
+            pip install numpy -v
+            apt-get update || true
+            apt-get install -y libflac-dev libflac++-dev || brew install flac || true
+            find /usr -name "stream_decoder.h" -path "*/FLAC/*" || true
           CIBW_BUILD_VERBOSITY: 3
           CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-* cp39-*"
           CIBW_BUILD: "cp310-* cp311-* cp312-*"
           CIBW_ENVIRONMENT: >
-            FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
-            FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
-            CFLAGS="-I${{ env.FLAC_INCLUDE_DIR }}"
-            LDFLAGS="-L${{ env.FLAC_LIB_DIR }}"
+            FLAC_INCLUDE_DIR="/usr/include"
+            FLAC_LIB_DIR="/usr/lib/x86_64-linux-gnu"
+            CFLAGS="-I/usr/include"
+            LDFLAGS="-L/usr/lib/x86_64-linux-gnu"
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: 'LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH auditwheel repair -w {dest_dir} {wheel}'
           CIBW_TEST_REQUIRES: "numpy"
           CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
       
