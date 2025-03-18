@@ -1,0 +1,46 @@
+name: Build Wheels
+
+on:
+    release:
+    types: [created]
+    workflow_dispatch:
+
+jobs:
+    build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+        os: [ubuntu-20.04, windows-2019, macos-11]
+
+    steps:
+        - uses: actions/checkout@v3
+        
+        # Install system dependencies
+        - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential python3-dev libflac-dev libflac++-dev
+        
+        - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+            brew install gcc flac
+        
+        - name: Install system dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+            # This would need to be customized based on your Windows build strategy
+            choco install mingw flac
+            # Or use vcpkg
+        
+        - name: Build wheels
+        uses: pypa/cibuildwheel@v2.12.0
+        env:
+            CIBW_BEFORE_BUILD: "pip install numpy"
+            # Add any other build configurations
+        
+        - uses: actions/upload-artifact@v3
+        with:
+            path: ./wheelhouse/*.whl
