@@ -94,15 +94,23 @@ jobs:
           CIBW_BEFORE_BUILD: "pip install numpy -v"
           CIBW_BUILD_VERBOSITY: 3
           # Skip PyPy and older Python versions that aren't compatible
-          CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-*"
-          # Only build for Python 3.9+ which has better compatibility
-          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
-          # Pass environment variables to the build
-          CIBW_ENVIRONMENT: >
+          CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-* cp39-*"
+          # Only build for Python 3.10+ which has better compatibility
+          CIBW_BUILD: "cp310-* cp311-* cp312-*"
+          # Pass environment variables to the build - use different syntax for Windows
+          CIBW_ENVIRONMENT_LINUX: >
             FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
             FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
             CFLAGS="-I${{ env.FLAC_INCLUDE_DIR }}"
             LDFLAGS="-L${{ env.FLAC_LIB_DIR }}"
+          CIBW_ENVIRONMENT_MACOS: >
+            FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
+            FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
+            CFLAGS="-I${{ env.FLAC_INCLUDE_DIR }}"
+            LDFLAGS="-L${{ env.FLAC_LIB_DIR }}"
+          CIBW_ENVIRONMENT_WINDOWS: >
+            FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
+            FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
           # Test importing the module works
           CIBW_TEST_REQUIRES: "numpy"
           CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
