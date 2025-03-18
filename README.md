@@ -6,8 +6,9 @@ FLACPy is a high-performance Python extension for handling FLAC (Free Lossless A
 
 - Fastest possible FLAC file encoding and decoding with [libFLAC](https://github.com/xiph/flac). If loading using a start offset and length the library will only read and decode the required portion of the file.
 - Arbitrary metadata can be read/written when loading/saving without redundant file i/o.
-- Audio data uses [NumPy](https://github.com/numpy/numpy) arrays and metadata Python dicts.
-- Saved FLAC files include proper seektables for fast loading when using a start offset and length.
+- Audio data uses [NumPy](https://github.com/numpy/numpy) arrays and metadata uses Python dicts.
+- Save FLAC files with a specified bit depth and compression level
+- Save FLAC files with seektables for fast loading when using a start offset and length.
 
 ## Installation
 
