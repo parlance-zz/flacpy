@@ -58,7 +58,7 @@ jobs:
           brew install gcc flac
           echo "FLAC_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
           echo "FLAC_LIB_DIR=/usr/local/lib" >> $GITHUB_ENV
-      
+          
       # Install system dependencies - Windows
       - name: Install system dependencies (Windows)
         if: runner.os == 'Windows'
@@ -76,16 +76,27 @@ jobs:
           # Set environment variables for the build
           echo "FLAC_INCLUDE_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
           echo "FLAC_LIB_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
-      
+          
       # debug info
-      - name: Debug Information
+      - name: Debug Information (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
         run: |
           python --version
           pip --version
           pip list
           
-          # Print current directory structure
+          # Print current directory structure (Unix style)
           ls -la
+
+      - name: Debug Information (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python --version
+          pip --version
+          pip list
+          
+          # Print current directory structure (Windows style)
+          Get-ChildItem -Force
           
       # Build wheels with verbose output
       - name: Build wheels
