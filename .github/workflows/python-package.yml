@@ -42,7 +42,7 @@ jobs:
           # tbd: add any other build configurations
       
       - name: Upload wheels
-        uses: actions/upload-artifact@v2.3.1
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
