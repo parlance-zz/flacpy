@@ -330,7 +330,11 @@ PyObject* flacpy_load(PyObject* self, PyObject* args, PyObject* kwargs) {
     decoder.set_buffer(&buffer);
     decoder.set_range(start_sample, num_samples);
     decoder.set_metadata_only(metadata_only != 0);
-    
+
+    // Tell the decoder to process all metadata types
+    decoder.set_metadata_respond_all();
+    //decoder.set_metadata_respond(FLAC__METADATA_TYPE_VORBIS_COMMENT);
+
     // initialize decoder
     FLAC__StreamDecoderInitStatus init_status = decoder.init(filename);
     if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK) {
@@ -574,12 +578,13 @@ PyObject* flacpy_save(PyObject* self, PyObject* args, PyObject* kwargs) {
     int sample_rate = 44100;
     int bits_per_sample = 16;
     int compression_level = 5;  // default compression level (0-8)
+    int metadata_pad_len = 0;   // default padding length (0 means no padding)
     
-    static const char* kwlist[] = {"filename", "audio", "metadata", "sample_rate", "bits_per_sample", "compression_level", NULL};
+    static const char* kwlist[] = {"filename", "audio", "metadata", "sample_rate", "bits_per_sample", "compression_level", "metadata_pad_len", NULL};
     
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO|Oiii", const_cast<char**>(kwlist),
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO|Oiiii", const_cast<char**>(kwlist),
                                    &filename, &audio_obj, &metadata_dict,
-                                   &sample_rate, &bits_per_sample, &compression_level)) {
+                                   &sample_rate, &bits_per_sample, &compression_level, &metadata_pad_len)) {
         return NULL;
     }
     
@@ -632,13 +637,36 @@ PyObject* flacpy_save(PyObject* self, PyObject* args, PyObject* kwargs) {
     if (metadata_dict && PyDict_Check(metadata_dict)) {
         std::vector<FLAC__StreamMetadata*> metadata_blocks = create_metadata_from_dict(metadata_dict);
         
+        // calculate total metadata size
+        unsigned total_metadata_size = 0;
+        for (const auto* block : metadata_blocks) {
+            total_metadata_size += block->length;
+        }
+
+        // add padding if needed
+        if (metadata_pad_len > 0 && total_metadata_size < static_cast<unsigned>(metadata_pad_len)) {
+            unsigned padding_size = metadata_pad_len - total_metadata_size;
+            FLAC__StreamMetadata* padding = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PADDING);
+            if (padding) {
+                padding->length = padding_size;
+                metadata_blocks.push_back(padding);
+            }
+        }
+        
         if (!metadata_blocks.empty()) {
             encoder.set_metadata(metadata_blocks.data(), metadata_blocks.size());
         }
-        
         // note: metadata_blocks ownership is transferred to the encoder, do not free here
     }
-    
+    else if (metadata_pad_len > 0) {
+        // add padding if needed but no metadata was provided
+        FLAC__StreamMetadata* padding = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PADDING);
+        if (padding) {
+            padding->length = metadata_pad_len;
+            encoder.set_metadata(&padding, 1);
+        }
+    }
+
     // initialize the encoder
     FLAC__StreamEncoderInitStatus init_status = encoder.init(filename);
     if (init_status != FLAC__STREAM_ENCODER_INIT_STATUS_OK) {

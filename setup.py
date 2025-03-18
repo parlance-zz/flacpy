@@ -7,9 +7,6 @@ import numpy as np  # numpy import to get include directory
 extra_compile_args = []
 extra_link_args = []
 
-flac_include_dir = os.environ.get("FLAC_INCLUDE_DIR", "/usr/include")
-flac_lib_dir = os.environ.get("FLAC_LIB_DIR", "/usr/lib/x86_64-linux-gnu")
-
 # platform-specific compiler optimization flags
 if platform.system() == "Linux":
     extra_compile_args.extend(["-O3", "-march=native"])
@@ -18,7 +15,8 @@ elif platform.system() == "Darwin":
 elif platform.system() == "Windows":
     extra_compile_args.extend(["/O2", "/GL", "/LTCG", "/arch:AVX2"])
 
-# debug info
+flac_include_dir = os.environ.get("FLAC_INCLUDE_DIR", "/usr/include")
+flac_lib_dir = os.environ.get("FLAC_LIB_DIR", "/usr/lib/x86_64-linux-gnu")
 print(f"Using FLAC_INCLUDE_DIR: {flac_include_dir}")
 print(f"Using FLAC_LIB_DIR: {flac_lib_dir}")
 
@@ -53,6 +51,6 @@ setup(
     },
     include_package_data=True,
     python_requires=">=3.11",
-    install_requires=["numpy"],  # Add NumPy as a dependency
-    zip_safe=False,  # This is important for proper type detection
+    install_requires=["numpy"],
+    zip_safe=False,  # apparently important for proper type detection
 )

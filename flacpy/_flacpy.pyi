@@ -41,7 +41,8 @@ def save(
     metadata: Optional[Dict[str, Any]] = None,
     sample_rate: int = 44100,
     bits_per_sample: int = 16,
-    compression_level: int = 5
+    compression_level: int = 5,
+    metadata_pad_len: int = 0
 ) -> None:
     """
     Save audio data to a FLAC file with optional metadata.
@@ -53,5 +54,6 @@ def save(
         sample_rate: Sample rate in Hz
         bits_per_sample: Bit depth of the saved audio
         compression_level: FLAC compression level (0-8)
+        metadata_pad_len: Pad metadata blocks up to this length
     """
     ...

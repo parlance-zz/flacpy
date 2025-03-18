@@ -42,14 +42,14 @@ def test_load_and_save():
     # Save the audio to a FLAC file
     input_file = "./tests/test.flac"
     output_file = "./tests/test_output.flac"
-    metadata = {
+    new_metadata = {
         "vorbis_comment": {
             "TITLE": "Test Sine Wave",
             "ARTIST": "flacPy Test Script",
             "YEAR": "2025",
-            "vendor": "flacPy"
+            "vendor": "flacPy",
+            "custom_key": "custom_val"
         },
-        "custom_key": "custom_val"
     }
     
     # Load the entire file
@@ -61,6 +61,9 @@ def test_load_and_save():
     print(f"Loaded audio shape: {result['audio'].shape}")
     print(f"Sample rate: {result['sample_rate']}")
     
+    metadata = {**result['metadata']}
+    metadata["vorbis_comment"].update(new_metadata["vorbis_comment"])
+    
     sample_rate = result['sample_rate']
     audio_data = result["audio"]
     
@@ -68,7 +71,7 @@ def test_load_and_save():
     print(f"Saving audio to {output_file}...")
     start_time = time.time()
     flacpy.save(output_file, audio_data, metadata=metadata, 
-                sample_rate=sample_rate, bits_per_sample=16)
+                sample_rate=sample_rate, bits_per_sample=16, metadata_pad_len=256000)
     save_time = time.time() - start_time
     print(f"Save completed in {save_time:.3f} seconds")
     
@@ -94,7 +97,6 @@ def test_load_and_save():
     
     # Clean up
     #os.remove(test_filename)
-    print(f"Test file {input_file} removed")
     print("All tests completed!")
 
 if __name__ == "__main__":
