@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # Install system dependencies
+      # install system dependencies
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -39,8 +39,10 @@ jobs:
         uses: pypa/cibuildwheel@v2.12.0
         env:
           CIBW_BEFORE_BUILD: "pip install numpy"
-          # Add any other build configurations
+          # tbd: add any other build configurations
       
-      - uses: actions/upload-artifact@v3
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
         with:
+          name: wheels
           path: ./wheelhouse/*.whl
