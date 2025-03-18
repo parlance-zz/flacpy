@@ -23,33 +23,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential python3-dev libflac-dev libflac++-dev
           
-          # Find where FLAC is actually installed
-          echo "Checking include files:"
-          find /usr -name "FLAC*" | grep include
-          echo "Checking library files:"
-          find /usr/lib* -name "*flac*" | grep -v "debug"
+          # Verify FLAC installation
+          dpkg -L libflac-dev
+          dpkg -L libflac++-dev
           
-          # Explicitly check architecture-specific paths
-          echo "Architecture-specific paths:"
-          ls -la /usr/include/x86_64-linux-gnu/FLAC* || echo "No arch-specific FLAC headers"
-          ls -la /usr/lib/x86_64-linux-gnu/libFLAC* || echo "No arch-specific FLAC libs"
+          # Check where FLAC headers actually are
+          find /usr -name "stream_decoder.h" -path "*/FLAC/*" 2>/dev/null
           
-          # First check for architecture-specific paths, then fall back to standard paths
-          if [ -d "/usr/include/x86_64-linux-gnu/FLAC++" ]; then
-            echo "FLAC_INCLUDE_DIR=/usr/include/x86_64-linux-gnu" >> $GITHUB_ENV
-          else
-            echo "FLAC_INCLUDE_DIR=$(dirname $(find /usr -name "FLAC++/metadata.h" | head -1))" >> $GITHUB_ENV
-          fi
+          # Set FLAC paths based on actual locations
+          FLAC_INCLUDE=$(dirname $(dirname $(find /usr -name "stream_decoder.h" -path "*/FLAC/*" 2>/dev/null | head -1)))
+          echo "FLAC_INCLUDE_DIR=$FLAC_INCLUDE" >> $GITHUB_ENV
           
-          if [ -f "/usr/lib/x86_64-linux-gnu/libFLAC++.so" ]; then
-            echo "FLAC_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          else
-            echo "FLAC_LIB_DIR=$(dirname $(find /usr/lib* -name "libFLAC++.so*" | head -1))" >> $GITHUB_ENV
-          fi
+          FLAC_LIB=$(dirname $(find /usr/lib* -name "libFLAC++.so*" 2>/dev/null | head -1))
+          echo "FLAC_LIB_DIR=$FLAC_LIB" >> $GITHUB_ENV
           
-          # Print selected paths for verification
-          echo "Selected FLAC_INCLUDE_DIR: $FLAC_INCLUDE_DIR"
-          echo "Selected FLAC_LIB_DIR: $FLAC_LIB_DIR"
+          echo "Selected FLAC_INCLUDE_DIR: $FLAC_INCLUDE"
+          echo "Selected FLAC_LIB_DIR: $FLAC_LIB"
+          
+          # Verify the files exist
+          ls -la $FLAC_INCLUDE/FLAC
+          ls -la $FLAC_LIB/libFLAC*.so*
       
       # Install system dependencies - macOS
       - name: Install system dependencies (macOS)
@@ -76,40 +69,40 @@ jobs:
           # Set environment variables for the build
           echo "FLAC_INCLUDE_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" >> $GITHUB_ENV
           echo "FLAC_LIB_DIR=$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" >> $GITHUB_ENV
-          
-      # debug info
-      - name: Debug Information (Linux/macOS)
-        if: runner.os == 'Linux' || runner.os == 'macOS'
+      
+      # Create setup.cfg to explicitly include paths
+      - name: Create setup.cfg with include paths
+        run: |
+          echo "[build_ext]" > setup.cfg
+          echo "include_dirs=${{ env.FLAC_INCLUDE_DIR }}" >> setup.cfg
+          echo "library_dirs=${{ env.FLAC_LIB_DIR }}" >> setup.cfg
+          cat setup.cfg
+      
+      # Debug info
+      - name: Debug Information (All)
         run: |
           python --version
           pip --version
           pip list
-          
-          # Print current directory structure (Unix style)
-          ls -la
-
-      - name: Debug Information (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          python --version
-          pip --version
-          pip list
-          
-          # Print current directory structure (Windows style)
-          Get-ChildItem -Force
-          
+          echo "FLAC_INCLUDE_DIR=${{ env.FLAC_INCLUDE_DIR }}"
+          echo "FLAC_LIB_DIR=${{ env.FLAC_LIB_DIR }}"
+      
       # Build wheels with verbose output
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.0
         env:
           CIBW_BEFORE_BUILD: "pip install numpy -v"
           CIBW_BUILD_VERBOSITY: 3
-          # Skip PyPy builds
-          CIBW_SKIP: "pp* *-musllinux_*"
+          # Skip PyPy and older Python versions that aren't compatible
+          CIBW_SKIP: "pp* *-musllinux_* cp36-* cp37-*"
+          # Only build for Python 3.9+ which has better compatibility
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
           # Pass environment variables to the build
           CIBW_ENVIRONMENT: >
             FLAC_INCLUDE_DIR="${{ env.FLAC_INCLUDE_DIR }}"
             FLAC_LIB_DIR="${{ env.FLAC_LIB_DIR }}"
+            CFLAGS="-I${{ env.FLAC_INCLUDE_DIR }}"
+            LDFLAGS="-L${{ env.FLAC_LIB_DIR }}"
           # Test importing the module works
           CIBW_TEST_REQUIRES: "numpy"
           CIBW_TEST_COMMAND: "python -c \"import flacpy; print(flacpy.__file__)\""
