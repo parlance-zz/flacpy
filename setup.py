@@ -1,4 +1,4 @@
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 import os
 import platform
 import numpy as np  # Import NumPy to get include directory
@@ -15,7 +15,7 @@ elif platform.system() == "Windows":
     extra_compile_args.extend(["/O2", "/arch:AVX2"])
 
 flacpy_module = Extension(
-    'flacpy',
+    'flacpy._flacpy',  # Note the change here to make it a submodule
     sources=['src/flacpy.cpp'],
     include_dirs=[
         '/usr/local/include',
@@ -35,6 +35,12 @@ setup(
     author='parlance-zz',
     author_email='example@example.com',
     ext_modules=[flacpy_module],
+    packages=find_packages(),
+    package_data={
+        'flacpy': ['py.typed', '*.pyi'],
+    },
+    include_package_data=True,
     python_requires='>=3.6',
     install_requires=['numpy'],  # Add NumPy as a dependency
+    zip_safe=False,  # This is important for proper type detection
 )

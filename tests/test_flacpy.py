@@ -26,19 +26,22 @@ import flacpy
 import os
 import time
 
-def test_load_and_save():
-    # Create test audio data - a simple sine wave
-    sample_rate = 44100
+def get_test_data(sample_rate: int = 32000):
     duration = 2.0  # seconds
     frequency = 440.0  # Hz (A4)
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     sine_wave = np.sin(2 * np.pi * frequency * t) * (2**15 - 1)  # Scale to 16-bit
     audio_data = np.vstack((sine_wave, sine_wave)).T.astype(np.int32)  # Stereo
-    
     print(f"Generated test audio: {audio_data.shape} samples, {sample_rate}Hz")
+    return audio_data
+
+def test_load_and_save():
+    # Create test audio data - a simple sine wave
+    sample_rate = 32000
     
     # Save the audio to a FLAC file
-    test_filename = "./tests/test.flac"
+    input_file = "./tests/test.flac"
+    output_file = "./tests/test_output.flac"
     metadata = {
         "vorbis_comment": {
             "TITLE": "Test Sine Wave",
@@ -49,26 +52,32 @@ def test_load_and_save():
         "custom_key": "custom_val"
     }
     
-    print(f"Saving audio to {test_filename}...")
-    start_time = time.time()
-    #flacpy.save(test_filename, audio_data, metadata=metadata, 
-    #            sample_rate=sample_rate, bits_per_sample=16)
-    save_time = time.time() - start_time
-    print(f"Save completed in {save_time:.3f} seconds")
-    
     # Load the entire file
     print("Loading entire file...")
     start_time = time.time()
-    result = flacpy.load(test_filename)
+    result = flacpy.load(input_file)
     load_time = time.time() - start_time
     print(f"Full file load completed in {load_time:.3f} seconds")
     print(f"Loaded audio shape: {result['audio'].shape}")
     print(f"Sample rate: {result['sample_rate']}")
     
+    sample_rate = result['sample_rate']
+    audio_data = result["audio"]
+    
+
+    print(f"Saving audio to {output_file}...")
+    start_time = time.time()
+    flacpy.save(output_file, audio_data, metadata=metadata, 
+                sample_rate=sample_rate, bits_per_sample=16)
+    save_time = time.time() - start_time
+    print(f"Save completed in {save_time:.3f} seconds")
+    
+
+    
     # Load just metadata
     print("Loading metadata only...")
     start_time = time.time()
-    metadata_result = flacpy.load(test_filename, metadata_only=True)
+    metadata_result = flacpy.load(input_file, metadata_only=True)
     metadata_time = time.time() - start_time
     print(f"Metadata load completed in {metadata_time:.3f} seconds")
     print(f"Metadata: {metadata_result['metadata']}")
@@ -78,14 +87,14 @@ def test_load_and_save():
     segment_length = int(sample_rate * 0.25)  # 0.25 seconds long
     print(f"Loading segment from sample {segment_start} for {segment_length} samples...")
     start_time = time.time()
-    segment = flacpy.load(test_filename, start_sample=segment_start, num_samples=segment_length)
+    segment = flacpy.load(input_file, start_sample=segment_start, num_samples=segment_length)
     segment_time = time.time() - start_time
     print(f"Segment load completed in {segment_time:.3f} seconds")
     print(f"Segment shape: {segment['audio'].shape}")
     
     # Clean up
     #os.remove(test_filename)
-    print(f"Test file {test_filename} removed")
+    print(f"Test file {input_file} removed")
     print("All tests completed!")
 
 if __name__ == "__main__":

@@ -691,14 +691,14 @@ static PyMethodDef FlacpyMethods[] = {
 // module definition
 static struct PyModuleDef flacpymodule = {
     PyModuleDef_HEAD_INIT,
-    "flacpy",
-    "High performance FLAC file operations",
-    -1,
-    FlacpyMethods
+    "flacpy._flacpy",  // Module name
+    "High performance FLAC file operations",  // Module doc string
+    -1,  // Size of per-interpreter state or -1
+    FlacpyMethods  // Method table
 };
 
 // module initialization function
-PyMODINIT_FUNC PyInit_flacpy(void) {
+PyMODINIT_FUNC PyInit__flacpy(void) {  // Note: double underscore before flacpy
     PyObject* m;
     
     // initialize NumPy

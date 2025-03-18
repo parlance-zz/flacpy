@@ -21,26 +21,31 @@
 # SOFTWARE.
 
 
-# filepath: /home/parlance/flacpy/examples/basic_usage.py
 import numpy as np
-import flacpy  # Import the FLAC Python extension
+import flacpy
 
 def main():
     # Example usage of the FLAC Python extension
     print("FLAC Python Extension Example")
 
-    # Assuming flacpy has a function to read a FLAC file
     # Replace 'example.flac' with your actual FLAC file path
-    flac_file_path = 'example.flac'
+    flac_file_path = '/home/parlance/dualdiffusion/debug/test.flac'
     
     try:
         # Load the FLAC file
-        audio_data = flacpy.load_flac(flac_file_path)
-        print("Loaded audio data:", audio_data)
-
-        # Process the audio data (this is just a placeholder)
-        processed_data = flacpy.process_audio(audio_data)
-        print("Processed audio data:", processed_data)
+        result = flacpy.load(flac_file_path)
+        print(f"Loaded audio data: {result['audio'].shape} samples at {result['sample_rate']}Hz")
+        
+        # Generate some test audio data if needed
+        sample_rate = 44100
+        duration = 2.0
+        t = np.linspace(0, duration, int(sample_rate * duration), False)
+        sine_wave = np.sin(2 * np.pi * 440 * t) * (2**15 - 1)
+        audio_data = np.vstack((sine_wave, sine_wave)).T.astype(np.int32)
+        
+        # Save it back
+        flacpy.save("output.flac", audio_data, sample_rate=44100)
+        print("Saved audio file to output.flac")
 
     except Exception as e:
         print("An error occurred:", e)
