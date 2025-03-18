@@ -34,16 +34,16 @@ SOFTWARE.
 #include <string>
 #include <memory>
 
-// type definition for FlacAudio object
+// type definition for FLACAudio object
 typedef struct {
     PyObject_HEAD
     std::vector<int32_t>* buffer;
     unsigned int channels;
     unsigned int sample_rate;
     unsigned int bits_per_sample;
-} FlacAudioObject;
+} FLACAudioObject;
 
-extern PyTypeObject FlacAudioType;
+extern PyTypeObject FLACAudioType;
 
 // api function declarations
 PyObject* flacpy_load(PyObject* self, PyObject* args, PyObject* kwargs);

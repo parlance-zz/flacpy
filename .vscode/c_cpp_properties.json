@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${env:CONDA_PREFIX}/include/**",
+                "${env:CONDA_PREFIX}/lib/**",
+                "${default}"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "compilerPath": "/usr/bin/g++",
+            "intelliSenseMode": "gcc-x64",
+        }
+    ],
+    "version": 4
+}

@@ -45,9 +45,9 @@ def test_load_and_save():
     metadata = {
         "vorbis_comment": {
             "TITLE": "Test Sine Wave",
-            "ARTIST": "FlacPy Test Script",
+            "ARTIST": "flacPy Test Script",
             "YEAR": "2025",
-            "vendor": "FlacPy"
+            "vendor": "flacPy"
         },
         "custom_key": "custom_val"
     }

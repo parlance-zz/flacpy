@@ -1,0 +1,32 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build and Install Python Package",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build Extension",
+                "Install Editable"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Extension",
+            "type": "shell",
+            "command": "python",
+            "args": ["setup.py", "build_ext", "--inplace"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Editable",
+            "type": "shell",
+            "command": "pip",
+            "args": ["install", "-e", "."],
+            "problemMatcher": []
+        }
+    ]
+}

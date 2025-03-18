@@ -2,7 +2,7 @@ from typing import Dict, Any, Union, Optional, TypedDict, List
 import numpy as np
 from numpy.typing import NDArray
 
-class FlacAudio:
+class FLACAudio:
     """FLAC audio container class."""
     pass
 

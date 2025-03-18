@@ -1,3 +1,3 @@
-from ._flacpy import load, save, FlacAudio
+from ._flacpy import load, save, FLACAudio
 
-__all__ = ['load', 'save', 'FlacAudio']
+__all__ = ['load', 'save', 'FLACAudio']

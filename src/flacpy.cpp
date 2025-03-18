@@ -37,15 +37,15 @@ SOFTWARE.
 #include <memory>
 #include <vector>
 
-// FlacAudio type definition
-static PyMethodDef FlacAudio_methods[] = {
+// FLACAudio type definition
+static PyMethodDef FLACAudio_methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-PyTypeObject FlacAudioType = {
+PyTypeObject FLACAudioType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "flacpy.FlacAudio",           /* tp_name */
-    sizeof(FlacAudioObject),      /* tp_basicsize */
+    "flacpy.FLACAudio",           /* tp_name */
+    sizeof(FLACAudioObject),      /* tp_basicsize */
     0,                            /* tp_itemsize */
     0,                            /* tp_dealloc */
     0,                            /* tp_print */
@@ -63,14 +63,14 @@ PyTypeObject FlacAudioType = {
     0,                            /* tp_setattro */
     0,                            /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,           /* tp_flags */
-    "FlacAudio object",           /* tp_doc */
+    "FLACAudio object",           /* tp_doc */
     0,                            /* tp_traverse */
     0,                            /* tp_clear */
     0,                            /* tp_richcompare */
     0,                            /* tp_weaklistoffset */
     0,                            /* tp_iter */
     0,                            /* tp_iternext */
-    FlacAudio_methods,            /* tp_methods */
+    FLACAudio_methods,            /* tp_methods */
     0,                            /* tp_members */
     0,                            /* tp_getset */
     0,                            /* tp_base */
@@ -84,9 +84,9 @@ PyTypeObject FlacAudioType = {
 };
 
 // FLAC decoder class for partial decoding
-class PartialFlacDecoder : public FLAC::Decoder::File {
+class PartialFLACDecoder : public FLAC::Decoder::File {
 public:
-    PartialFlacDecoder() : 
+    PartialFLACDecoder() : 
         buffer_(nullptr), 
         channels_(0), 
         bits_per_sample_(0), 
@@ -324,7 +324,7 @@ PyObject* flacpy_load(PyObject* self, PyObject* args, PyObject* kwargs) {
     }
     
     std::vector<int32_t> buffer;
-    PartialFlacDecoder decoder;
+    PartialFLACDecoder decoder;
     
     // set up decoder
     decoder.set_buffer(&buffer);
@@ -402,7 +402,7 @@ PyObject* flacpy_load(PyObject* self, PyObject* args, PyObject* kwargs) {
 }
 
 // FLAC encoder class
-class FlacEncoder : public FLAC::Encoder::File {
+class FLACEncoder : public FLAC::Encoder::File {
 protected:
     // progress callback
     virtual void progress_callback(FLAC__uint64 bytes_written, FLAC__uint64 samples_written, 
@@ -621,7 +621,7 @@ PyObject* flacpy_save(PyObject* self, PyObject* args, PyObject* kwargs) {
     int32_t* audio_data = static_cast<int32_t*>(PyArray_DATA(audio_array));
     
     // set up the encoder
-    FlacEncoder encoder;
+    FLACEncoder encoder;
     encoder.set_verify(true);
     encoder.set_compression_level(compression_level);
     encoder.set_channels(num_channels);
@@ -680,7 +680,7 @@ PyObject* flacpy_save(PyObject* self, PyObject* args, PyObject* kwargs) {
 }
 
 // module method definitions
-static PyMethodDef FlacpyMethods[] = {
+static PyMethodDef FLACPyMethods[] = {
     {"load", (PyCFunction)flacpy_load, METH_VARARGS | METH_KEYWORDS, 
      "Load a FLAC file with optional offset and length"},
     {"save", (PyCFunction)flacpy_save, METH_VARARGS | METH_KEYWORDS,
@@ -694,7 +694,7 @@ static struct PyModuleDef flacpymodule = {
     "flacpy._flacpy",  // Module name
     "High performance FLAC file operations",  // Module doc string
     -1,  // Size of per-interpreter state or -1
-    FlacpyMethods  // Method table
+    FLACPyMethods  // Method table
 };
 
 // module initialization function
@@ -710,12 +710,12 @@ PyMODINIT_FUNC PyInit__flacpy(void) {  // Note: double underscore before flacpy
         return NULL;
     
     // initialize our custom types
-    if (PyType_Ready(&FlacAudioType) < 0)
+    if (PyType_Ready(&FLACAudioType) < 0)
         return NULL;
     
     // add types to the module
-    Py_INCREF(&FlacAudioType);
-    PyModule_AddObject(m, "FlacAudio", (PyObject*)&FlacAudioType);
+    Py_INCREF(&FLACAudioType);
+    PyModule_AddObject(m, "FLACAudio", (PyObject*)&FLACAudioType);
     
     return m;
 }
